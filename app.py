@@ -29,20 +29,30 @@ def extract_text(file):
         return "\n".join([para.text for para in doc.paragraphs if para.text])
     return ""
 
+# --- Truncate input if it's too long ---
+def truncate_text(text, max_tokens=2000):
+    words = text.split()
+    return " ".join(words[:max_tokens])
+
 # --- Run agents ---
 def call_agent(prompt):
     client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"**Error:** {str(e)}"
 
 if st.button("Run Multi-Agent AI") and api_key:
     input_text = topic or extract_text(uploaded_file)
     if not input_text:
         st.warning("Please provide a topic or upload a document.")
     else:
+        input_text = truncate_text(input_text)
+
         with st.spinner("Running agents..."):
             agents = {
                 "Scientific Blog Article": f"Write a short scientific article for our research blog at an expert reading level based on the following topic or text: {input_text}\nInclude a brief description of the article for our newsletter.",
